@@ -47,7 +47,7 @@ export class InstitutionsDto {
   @ApiProperty({
     example: false,
     required: true,
-    type: 'boolean',
+    type: Boolean,
     description: 'Oauth',
   })
   @Exclude()

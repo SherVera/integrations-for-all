@@ -16,8 +16,12 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Products } from 'plaid';
+import { IdentityDto } from '../dtos/identity.dto';
 import { InstitutionsDto } from '../dtos/institutions.dto';
+import { InvestmentDto } from '../dtos/investment.dto.';
+import { ItemDto } from '../dtos/item.dto';
 import { AccessTokenDto, QueryTransactionsDto } from '../dtos/queries.dto';
+import { TransactionDto } from '../dtos/transaction.dto';
 import { PlaidService } from '../services/plaid.service';
 
 @Controller('plaid')
@@ -27,6 +31,7 @@ export class PlaidController {
 
   /**
    *
+   * @name getAccessToken
    * @description Get Access Token for an arbitrary institution ID, initial products
    * @query institution_id
    * @query initial_products
@@ -61,11 +66,11 @@ export class PlaidController {
   @HttpCode(200)
   @ApiBadRequestResponse({ description: 'An error has occurred.' })
   @Get('/token')
-  async getPublicToken(
+  async getAccessToken(
     @Query('institution_id') institution_id: string,
     @Query('initial_products', ParseArrayPipe) initial_products: Products[],
   ): Promise<AccessTokenDto> {
-    return await this.plaidService.getPublicToken(
+    return await this.plaidService.getAccessToken(
       institution_id,
       initial_products,
     );
@@ -73,37 +78,13 @@ export class PlaidController {
 
   /**
    *
-   * @description Retrieve various account holder information on file with the financial institution, including names, emails, phone numbers, and addresses
-   * @query access_token
-   * @returns access_token
+   * @name getInstitutions
+   * @description Get Institutions List
+   * @query offset
+   * @query count
+   * @returns InstitutionsDto[]
    *
    */
-
-  @UseGuards(AuthGuard('api-key'))
-  @ApiOperation({
-    summary: 'Retrieve identity data',
-    description:
-      'Retrieve various account holder information on file with the financial institution, including names, emails, phone numbers, and addresses',
-  })
-  @ApiHeader({
-    name: 'X-Api-Key',
-    description: 'Api Key to Authorization',
-    example: '60f85354b82d8357f36bd79e',
-  })
-  @ApiQuery({
-    name: 'access_token',
-    type: String,
-  })
-  @ApiOkResponse({
-    description: 'Autenticacion Exitosa.',
-  })
-  @HttpCode(200)
-  @ApiBadRequestResponse({ description: 'Ha ocurrido un error.' })
-  @Get('/identity/get')
-  async getIdentity(@Query() queryParams: AccessTokenDto): Promise<any> {
-    const { access_token } = queryParams;
-    return await this.plaidService.getIdentity(access_token);
-  }
 
   @UseGuards(AuthGuard('api-key'))
   @ApiOperation({
@@ -130,17 +111,27 @@ export class PlaidController {
   @HttpCode(200)
   @ApiBadRequestResponse({ description: 'An error has occurred.' })
   @Get('/institutions')
-  async institutionsGet(
+  async getInstitutions(
     @Query('offset') offset: number,
     @Query('count') count: number,
   ): Promise<InstitutionsDto[]> {
-    return await this.plaidService.institutionsGet(count, offset);
+    return await this.plaidService.getInstitutions(count, offset);
   }
+
+  /**
+   *
+   * @name getIdentity
+   * @description Retrieve various account holder information on file with the financial institution, including names, emails, phone numbers, and addresses
+   * @query access_token
+   * @returns IdentityDto
+   *
+   */
 
   @UseGuards(AuthGuard('api-key'))
   @ApiOperation({
-    summary: 'Autenticacion de Usuario',
-    description: 'Autenticacion de usuario previamente registrado y verificado',
+    summary: 'Retrieve identity data',
+    description:
+      'Retrieve various account holder information on file with the financial institution, including names, emails, phone numbers, and addresses',
   })
   @ApiHeader({
     name: 'X-Api-Key',
@@ -152,20 +143,69 @@ export class PlaidController {
     type: String,
   })
   @ApiOkResponse({
-    description: 'Autenticacion Exitosa.',
+    description: 'Identity data.',
+    type: IdentityDto,
   })
   @HttpCode(200)
-  @ApiBadRequestResponse({ description: 'Ha ocurrido un error.' })
+  @ApiBadRequestResponse({ description: 'An error has occurred' })
+  @Get('/identity/get')
+  async getIdentity(
+    @Query() queryParams: AccessTokenDto,
+  ): Promise<IdentityDto> {
+    const { access_token } = queryParams;
+    return await this.plaidService.getIdentity(access_token);
+  }
+
+  /**
+   *
+   * @name getItem
+   * @description Returns information about the status of an Item.
+   * @query access_token
+   * @returns ItemDto
+   *
+   */
+  @UseGuards(AuthGuard('api-key'))
+  @ApiOperation({
+    summary: 'Retrieve an Item',
+    description: 'Returns information about the status of an Item.',
+  })
+  @ApiHeader({
+    name: 'X-Api-Key',
+    description: 'Api Key to Authorization',
+    example: '60f85354b82d8357f36bd79e',
+  })
+  @ApiQuery({
+    name: 'access_token',
+    type: String,
+  })
+  @ApiOkResponse({
+    description: 'Information Item.',
+  })
+  @HttpCode(200)
+  @ApiBadRequestResponse({
+    type: ItemDto,
+    description: 'An error has occurred.',
+  })
   @Get('/item/get')
-  async getItem(@Query() queryParams: AccessTokenDto): Promise<any> {
+  async getItem(@Query() queryParams: AccessTokenDto): Promise<ItemDto> {
     const { access_token } = queryParams;
     return await this.plaidService.getItem(access_token);
   }
 
+  /**
+   *
+   * @name getInvestmentsHoldings
+   * @description Receive user-authorized stock position data for investment-type accounts
+   * @query access_token
+   * @returns InvestmentDto
+   *
+   */
+
   @UseGuards(AuthGuard('api-key'))
   @ApiOperation({
-    summary: 'Autenticacion de Usuario',
-    description: 'Autenticacion de usuario previamente registrado y verificado',
+    summary: 'Get Investment holdings',
+    description:
+      'Receive user-authorized stock position data for investment-type accounts',
   })
   @ApiHeader({
     name: 'X-Api-Key',
@@ -177,22 +217,37 @@ export class PlaidController {
     type: String,
   })
   @ApiOkResponse({
-    description: 'Autenticacion Exitosa.',
+    type: InvestmentDto,
+    description: 'Investment holdings.',
   })
   @HttpCode(200)
-  @ApiBadRequestResponse({ description: 'Ha ocurrido un error.' })
+  @ApiBadRequestResponse({
+    description: 'An error has occurred.',
+  })
   @Get('/investments/holdings/get')
   async getInvestmentsHoldings(
     @Query() queryParams: AccessTokenDto,
-  ): Promise<any> {
+  ): Promise<InvestmentDto> {
     const { access_token } = queryParams;
     return await this.plaidService.getInvestmentsHoldings(access_token);
   }
 
+  /**
+   *
+   * @name getTransactions
+   * @description Receive user-authorized transaction data for credit, depository, and some loan-type accounts (only those with account subtype student; coverage may be limited).
+   * @query access_token
+   * @query start_date
+   * @query end_date
+   * @returns TransactionDto
+   *
+   */
+
   @UseGuards(AuthGuard('api-key'))
   @ApiOperation({
-    summary: 'Autenticacion de Usuario',
-    description: 'Autenticacion de usuario previamente registrado y verificado',
+    summary: 'Get transaction data',
+    description:
+      'Receive user-authorized transaction data for credit, depository, and some loan-type accounts (only those with account subtype student; coverage may be limited).',
   })
   @ApiHeader({
     name: 'X-Api-Key',
@@ -212,14 +267,15 @@ export class PlaidController {
     type: String,
   })
   @ApiOkResponse({
-    description: 'Autenticacion Exitosa.',
+    description: 'Transaction data.',
+    type: TransactionDto,
   })
   @HttpCode(200)
-  @ApiBadRequestResponse({ description: 'Ha ocurrido un error.' })
+  @ApiBadRequestResponse({ description: 'An error has occurred.' })
   @Get('/transactions/get')
   async getTransactions(
     @Query() queryParams: QueryTransactionsDto,
-  ): Promise<any> {
+  ): Promise<TransactionDto> {
     const { access_token, start_date, end_date } = queryParams;
     return await this.plaidService.getTransactions(
       access_token,
